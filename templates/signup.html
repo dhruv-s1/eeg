@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - CoastGuard AI</title>
+    <!-- INLINE DEVICE CHECK - Runs immediately before any rendering -->
+    <script>
+        (function() {
+            const isMobileUA = /android|webos|iphone|ipod|blackberry|iemobile|opera mini|mobile|touch/i.test(navigator.userAgent.toLowerCase());
+            const isSmallViewport = window.innerWidth <= 768;
+            const isIPad = navigator.userAgent.includes('iPad');
+            const isMobile = (isMobileUA && !isIPad) || (isSmallViewport && !isIPad);
+
+            if (isMobile) {
+                window.location.href = '/mobile-signup';
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/device-router.js"></script>
+    <style>
+        .back-link {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            z-index: 100;
+        }
+
+        .back-link:hover {
+            color: #00f0ff;
+            background: rgba(0, 217, 255, 0.2);
+            transform: translateX(-5px);
+            box-shadow: 0 4px 15px rgba(0, 217, 255, 0.2);
+        }
+
+        .back-link::before {
+            content: '←';
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+
+        .back-link:hover::before {
+            transform: translateX(-3px);
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← Back</a>
+    <div class="auth-box">
+        <h2>🌊 Join CoastGuard</h2>
+        <p>Monitor UAE's coastal restoration efforts</p>
+
+        {% if error %}
+        <div style="background: #fee2e2; color: #dc2626; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; border-left: 4px solid #dc2626;">
+            ⚠️ {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" onsubmit="return validateForm()">
+            <input type="text" id="username" name="username" placeholder="Username (min 5 letters)" required>
+            <small id="username-error" style="color: #dc2626; display: none; margin-top: -10px;">Username must be at least 5 characters</small>
+
+            <input type="email" id="email" name="email" placeholder="Email address" required>
+            <small id="email-error" style="color: #dc2626; display: none; margin-top: -10px;">Invalid email format</small>
+
+            <input type="password" id="password" name="password" placeholder="Password (min 7 characters)" required>
+            <small id="password-error" style="color: #dc2626; display: none; margin-top: -10px;">Password must be at least 7 characters</small>
+
+            <button type="submit">Create Account</button>
+        </form>
+
+        <p>Already have an account? <a href="/login">Login</a></p>
+    </div>
+
+    <script>
+        function validateForm() {
+            let isValid = true;
+
+            // Validate username
+            const username = document.getElementById('username').value.trim();
+            const usernameError = document.getElementById('username-error');
+            if (username.length < 5) {
+                usernameError.style.display = 'block';
+                isValid = false;
+            } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                usernameError.textContent = 'Username can only contain letters, numbers, and underscores';
+                usernameError.style.display = 'block';
+                isValid = false;
+            } else {
+                usernameError.style.display = 'none';
+            }
+
+            // Validate email
+            const email = document.getElementById('email').value.trim();
+            const emailError = document.getElementById('email-error');
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailPattern.test(email)) {
+                emailError.style.display = 'block';
+                isValid = false;
+            } else {
+                emailError.style.display = 'none';
+            }
+
+            // Validate password
+            const password = document.getElementById('password').value;
+            const passwordError = document.getElementById('password-error');
+            if (password.length < 7) {
+                passwordError.style.display = 'block';
+                isValid = false;
+            } else {
+                passwordError.style.display = 'none';
+            }
+
+            return isValid;
+        }
+
+        // Real-time validation on input
+        document.getElementById('username').addEventListener('input', function() {
+            const error = document.getElementById('username-error');
+            if (this.value.length < 5) {
+                error.style.display = 'block';
+            } else if (!/^[a-zA-Z0-9_]+$/.test(this.value)) {
+                error.textContent = 'Username can only contain letters, numbers, and underscores';
+                error.style.display = 'block';
+            } else {
+                error.style.display = 'none';
+            }
+        });
+
+        document.getElementById('email').addEventListener('input', function() {
+            const error = document.getElementById('email-error');
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailPattern.test(this.value) && this.value.length > 0) {
+                error.style.display = 'block';
+            } else {
+                error.style.display = 'none';
+            }
+        });
+
+        document.getElementById('password').addEventListener('input', function() {
+            const error = document.getElementById('password-error');
+            if (this.value.length < 7 && this.value.length > 0) {
+                error.style.display = 'block';
+            } else {
+                error.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

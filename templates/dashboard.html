@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoastGuard AI - UAE Coastal Restoration Monitoring</title>
+    <!-- INLINE DEVICE CHECK - Runs immediately before any rendering -->
+    <script>
+        (function() {
+            const isMobileUA = /android|webos|iphone|ipod|blackberry|iemobile|opera mini|mobile|touch/i.test(navigator.userAgent.toLowerCase());
+            const isSmallViewport = window.innerWidth <= 768;
+            const isIPad = navigator.userAgent.includes('iPad');
+            const isMobile = (isMobileUA && !isIPad) || (isSmallViewport && !isIPad);
+
+            if (isMobile) {
+                window.location.href = '/mobile-dashboard';
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/device-router.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        .drone-icon {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle at 30% 30%, #06b6d4, #0891b2);
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px #06b6d4;
+            position: relative;
+        }
+        
+        .drone-icon::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #06b6d4;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(6, 182, 212, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(6, 182, 212, 0);
+            }
+        }
+
+        .dashboard-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--ocean-dark);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar h2 {
+            margin-bottom: 30px;
+            font-size: 20px;
+            color: var(--teal-primary);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(8, 155, 167, 0.2);
+            border-left-color: var(--teal-primary);
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background: rgba(8, 155, 167, 0.3);
+            border-left-color: var(--teal-primary);
+            color: var(--teal-primary);
+            font-weight: 700;
+            box-shadow: inset -2px 0 5px rgba(8, 155, 167, 0.2);
+        }
+
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            height: 70px;
+            background: white;
+            border-bottom: 3px solid var(--teal-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 4px 15px rgba(10, 46, 74, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: var(--ocean-dark);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--light-bg);
+            padding: 30px;
+        }
+
+        .content-area h2 {
+            color: var(--ocean-dark);
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 5px solid var(--teal-primary);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(8, 155, 167, 0.15);
+        }
+
+        .stat-card h3 {
+            color: #888;
+            font-size: 13px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            color: var(--ocean-dark);
+            font-weight: 700;
+        }
+
+        .stat-card .unit {
+            color: #aaa;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            border-top: 4px solid var(--teal-primary);
+        }
+
+        .chart-container:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-container h3 {
+            color: var(--ocean-dark);
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .drone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .drone-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border-top: 3px solid var(--teal-primary);
+        }
+
+        .drone-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(8, 155, 167, 0.15);
+        }
+
+        .drone-card .drone-name {
+            font-weight: 700;
+            color: var(--ocean-dark);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .drone-card .area {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .map-container {
+            position: relative;
+            height: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(10, 46, 74, 0.2);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 400;
+        }
+
+        #infoPanel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .info-card {
+            border-left: 4px solid var(--teal-primary);
+            padding-left: 15px;
+        }
+
+        .info-card h4 {
+            color: var(--ocean-dark);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .info-card .detail {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: var(--ocean-dark);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: var(--ocean-blue);
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 100px;
+                flex-direction: row;
+                padding: 10px;
+                overflow-x: auto;
+            }
+
+            .nav-menu {
+                flex-direction: row;
+                gap: 5px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body data-onboarding-needed="{{ onboarding_needed }}">
+    <div class="dashboard-container">
+        <div class="sidebar" id="sidebar-guide">
+            <h2>🌊 CoastGuard</h2>
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="switchView('landing')">📊 Dashboard</div>
+                <div class="nav-item" id="analytics-guide" onclick="switchView('charts')">📈 Analytics</div>
+                <div class="nav-item" id="drone-guide" onclick="switchView('drones')">🚁 Drone Fleet</div>
+                <div class="nav-item" id="map-guide" onclick="window.location.href='/map'" style="cursor: pointer;">🗺️ Live Map</div>
+            </div>
+            <form action="/logout" method="GET" style="margin: 0;">
+                <button type="submit" class="logout-btn" style="width: 100%;">Logout</button>
+            </form>
+        </div>
+
+        <div class="main-panel">
+            <div class="header">
+                <h1 id="pageTitle">🤖 CoastGuard Dashboard</h1>
+                <div class="header-right">
+                    <span id="updateTime"></span>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Landing View -->
+                <div id="landing" class="view-section active">
+                    <h2 style="margin-bottom: 20px; color: var(--ocean-dark);">Welcome to CoastGuard AI</h2>
+
+                    <div class="stats-grid" id="stats-guide">
+                        <div class="stat-card scroll-reveal">
+                            <h3>💰 Total Donations</h3>
+                            <div class="value" id="stat-donations">0</div>
+                            <div class="unit">USD</div>
+                        </div>
+                        <div class="stat-card scroll-reveal stagger-2">
+                            <h3>🔵 Active Pods</h3>
+                            <div class="value" id="stat-pods">0</div>
+                            <div class="unit">monitoring units</div>
+                        </div>
+                        <div class="stat-card scroll-reveal stagger-3">
+                            <h3>📍 Area Scanned</h3>
+                            <div class="value" id="stat-area">0</div>
+                            <div class="unit">km²</div>
+                        </div>
+                        <div class="stat-card scroll-reveal stagger-4">
+                            <h3>✈️ Drones Online</h3>
+                            <div class="value" id="stat-drones">0</div>
+                            <div class="unit">active</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-container scroll-reveal">
+                        <h3>🌍 System Status Overview</h3>
+                        <p style="color: #666; font-size: 14px;">Click on other sections to explore detailed analytics, drone fleet status, and live map tracking.</p>
+                        <div style="margin-top: 20px; padding: 20px; background: #f0f8fb; border-radius: 8px;">
+                            <p style="color: #0a2e4a; line-height: 1.6;">
+                                <strong>Real-time Monitoring:</strong> Our drone fleet continuously monitors UAE's critical coastal restoration zones.
+                                <br><br><strong>Key Zones:</strong> Palm Jumeirah, Palm Jebel Ali, Saadiyat Island, Al Mamzar Beach, and Jebel Ali Beach.
+                                <br><br><strong>Mission:</strong> Deploy sustainable restoration solutions and track coastal stability in real-time.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics View -->
+                <div id="charts" class="view-section">
+                    <h2 style="margin-bottom: 20px; color: var(--ocean-dark);">📈 Analytics & Trends</h2>
+
+                    <div class="chart-container scroll-reveal">
+                        <h3>Pods Over Time (Last 7 Days)</h3>
+                        <canvas id="podsChart" height="80"></canvas>
+                    </div>
+
+                    <div class="chart-container scroll-reveal stagger-2">
+                        <h3>Area Scanned by Drone (Active Fleet)</h3>
+                        <canvas id="droneAreaChart" height="80"></canvas>
+                    </div>
+                </div>
+
+                <!-- Drones View -->
+                <div id="drones" class="view-section">
+                    <h2 style="margin-bottom: 20px; color: var(--ocean-dark);">🚁 Active Drone Fleet</h2>
+
+                    <div class="chart-container scroll-reveal">
+                        <div class="drone-grid" id="droneList">
+                            <div class="loading">Loading drone data...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="/static/scroll-animations.js"></script>
+    <script src="/static/onboarding-overlay.js"></script>
+    <script src="/static/mobile-menu.js"></script>
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>
