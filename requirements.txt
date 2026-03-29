@@ -19,4 +19,5 @@ itsdangerous==2.1.2
 # Optional: For development
 # Uncomment these if you want to use them:
 # Flask-Cors==4.0.0
-# gunicorn==21.2.0
+gunicorn==21.2.0
+requests==2.31.0

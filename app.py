@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timedelta
 import random
 import re
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret123'
@@ -348,4 +349,5 @@ def logout():
 
 if __name__ == '__main__':
     migrate_database()
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    port = int(os.environ.get("PORT", 10000))  # Render sets PORT automatically
+    app.run(debug=False, host="0.0.0.0", port=port)
